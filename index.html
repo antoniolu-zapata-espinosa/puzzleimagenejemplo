@@ -78,7 +78,7 @@
             background: white;
             padding: 15px;
             border-radius: 15px;
-            box-shadow: 0 8px 166px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
 
         .preview-title {
@@ -105,7 +105,6 @@
             border: 4px dashed #b2bec3;
             border-radius: 12px;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
-            /* Evita que la tablet mueva la pantalla al arrastrar dentro del tablero */
             touch-action: none; 
         }
         .grid-slot {
@@ -126,16 +125,16 @@
             gap: 10px;
             justify-content: center;
             align-items: center;
-            touch-action: none; /* Crucial para tabletas */
+            touch-action: none;
         }
         .piece {
             position: absolute;
             cursor: grab;
             box-shadow: 2px 4px 8px rgba(0,0,0,0.3);
             border-radius: 4px;
-            touch-action: none; /* Obliga a la tablet a arrastrar la pieza en vez de hacer scroll */
+            touch-action: none; 
             z-index: 10;
-            -webkit-user-drag: none; /* Evita el arrastre nativo de imágenes de iOS/Safari */
+            -webkit-user-drag: none; 
         }
         .piece:active { cursor: grabbing; z-index: 100; }
         .piece.in-pool {
@@ -179,7 +178,6 @@
 
         <div class="preview-side">
             <div class="preview-title">Mira el modelo aquí:</div>
-            <!-- Dejamos el src vacío pero controlado por JS de forma segura -->
             <img id="preview-image" src="" alt="Modelo a seguir">
         </div>
     </div>
@@ -187,8 +185,6 @@
     <div id="win-message">🎉 ¡Felicidades! ¡Lo lograste! 🎉</div>
 
     <script>
-        // Si las imágenes siguen sin salir en Vercel, es un problema estricto de espacios en blanco
-        // Asegúrate de que los archivos reales en tu carpeta NO tengan espacios si esto falla.
         const repository = [
             { name: "Bluey con la familia", url: "imagenes/Bluey con la familia.jpg" },
             { name: "Bluey en el columpio", url: "imagenes/Bluey en el columpio.jpg" },
@@ -230,21 +226,13 @@
 
             const currentImgUrl = select.value;
             
-            // Forzar actualización de la vista previa de forma segura
             if(previewImage) {
                 previewImage.src = currentImgUrl;
             }
 
             let piecesArray = [];
 
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; r++, c++) {
-                    // Ajuste técnico: corrección del bucle para evitar bucles infinitos
-                    if (c >= COLS) { c = 0; }
-                }
-            }
-
-            // Bucle limpio de generación de piezas
+            // Bucle limpio de generación de piezas (Corregido sin bucle infinito)
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     const posX = c * PIECE_WIDTH;
@@ -262,7 +250,7 @@
                     piece.classList.add("piece", "in-pool");
                     piece.style.width = `${PIECE_WIDTH}px`;
                     piece.style.height = `${PIECE_HEIGHT}px`;
-                    piece.style.backgroundImage = `url('${encodeURI(currentImgUrl)}')`; // Protege los espacios en blanco en Vercel
+                    piece.style.backgroundImage = `url('${encodeURI(currentImgUrl)}')`; 
                     piece.style.backgroundSize = `${BOARD_WIDTH}px ${BOARD_HEIGHT}px`;
                     piece.style.backgroundPosition = `-${posX}px -${posY}px`;
                     
@@ -288,3 +276,21 @@
                 if (el.dataset.locked === "true") return;
                 isDragging = true;
                 
+                if (el.classList.contains('in-pool')) {
+                    el.classList.remove('in-pool');
+                    board.appendChild(el);
+                }
+
+                const clientX = e.touches ? e.touches.clientX : e.clientX;
+                const clientY = e.touches ? e.touches.clientY : e.clientY;
+
+                const rect = board.getBoundingClientRect();
+                el.style.left = `${clientX - rect.left - (PIECE_WIDTH / 2)}px`;
+                el.style.top = `${clientY - rect.top - (PIECE_HEIGHT / 2)}px`;
+
+                startX = clientX - el.offsetLeft;
+                startY = clientY - el.offsetTop;
+
+                document.addEventListener('mousemove', dragMove);
+                document.addEventListener('touchmove', dragMove, { passive: false });
+                document.addEventListener('mouseup', dragEnd);
