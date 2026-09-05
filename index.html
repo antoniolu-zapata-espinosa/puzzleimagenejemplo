@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>¡El Gran Rompecabezas de mi Hija!</title>
     <style>
         :root {
@@ -19,11 +19,13 @@
             flex-direction: column;
             align-items: center;
             user-select: none;
+            -webkit-user-select: none;
         }
         h1 {
             color: #d63031;
             margin: 0 0 15px 0;
             text-shadow: 2px 2px 0px #fff;
+            text-align: center;
         }
         .controls {
             background: white;
@@ -53,7 +55,6 @@
         }
         button:active { transform: translateY(4px); box-shadow: none; }
         
-        /* === NUEVO CONTENEDOR FLEX PARA APILAR LATERALMENTE === */
         .game-layout {
             display: flex;
             flex-direction: row;
@@ -64,14 +65,12 @@
             width: 100%;
         }
 
-        /* Columna del rompecabezas */
         .puzzle-side {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        /* Columna de la vista previa */
         .preview-side {
             display: flex;
             flex-direction: column;
@@ -79,7 +78,7 @@
             background: white;
             padding: 15px;
             border-radius: 15px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 166px rgba(0,0,0,0.1);
         }
 
         .preview-title {
@@ -90,14 +89,13 @@
         }
 
         #preview-image {
-            width: 250px; /* Tamaño ideal para que sirva de guía lateral */
+            width: 250px; 
             height: 200px;
             object-fit: cover;
             border-radius: 8px;
             border: 3px solid var(--primary);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        /* ==================================================== */
 
         #board-container {
             position: relative;
@@ -107,6 +105,8 @@
             border: 4px dashed #b2bec3;
             border-radius: 12px;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            /* Evita que la tablet mueva la pantalla al arrastrar dentro del tablero */
+            touch-action: none; 
         }
         .grid-slot {
             position: absolute;
@@ -126,14 +126,16 @@
             gap: 10px;
             justify-content: center;
             align-items: center;
+            touch-action: none; /* Crucial para tabletas */
         }
         .piece {
             position: absolute;
             cursor: grab;
             box-shadow: 2px 4px 8px rgba(0,0,0,0.3);
             border-radius: 4px;
-            touch-action: none;
+            touch-action: none; /* Obliga a la tablet a arrastrar la pieza en vez de hacer scroll */
             z-index: 10;
+            -webkit-user-drag: none; /* Evita el arrastre nativo de imágenes de iOS/Safari */
         }
         .piece:active { cursor: grabbing; z-index: 100; }
         .piece.in-pool {
@@ -151,7 +153,6 @@
             text-shadow: 1px 1px 0 #fff;
         }
 
-        /* Adaptación para pantallas más pequeñas */
         @media (max-width: 850px) {
             .game-layout {
                 flex-direction: column;
@@ -170,25 +171,24 @@
         <button onclick="initPuzzle()">Reiniciar</button>
     </div>
 
-    <!-- Contenedor general flexible -->
     <div class="game-layout">
-        
-        <!-- Lado izquierdo: El juego completo -->
         <div class="puzzle-side">
             <div id="board-container"></div>
             <div id="pieces-pool"></div>
         </div>
 
-        <!-- Lado derecho: Imagen modelo (Guía) -->
-<div class="preview-side">
-    <div class="preview-title">Mira el modelo aquí:</div>
-    <!-- Le asignamos la primera imagen por defecto para que Vercel no de error -->
-    <img id="preview-image" src="imagenes/Bluey con la familia.jpg" alt="Modelo a seguir">
-</div>
+        <div class="preview-side">
+            <div class="preview-title">Mira el modelo aquí:</div>
+            <!-- Dejamos el src vacío pero controlado por JS de forma segura -->
+            <img id="preview-image" src="" alt="Modelo a seguir">
+        </div>
+    </div>
 
     <div id="win-message">🎉 ¡Felicidades! ¡Lo lograste! 🎉</div>
 
     <script>
+        // Si las imágenes siguen sin salir en Vercel, es un problema estricto de espacios en blanco
+        // Asegúrate de que los archivos reales en tu carpeta NO tengan espacios si esto falla.
         const repository = [
             { name: "Bluey con la familia", url: "imagenes/Bluey con la familia.jpg" },
             { name: "Bluey en el columpio", url: "imagenes/Bluey en el columpio.jpg" },
@@ -210,11 +210,11 @@
         const pool = document.getElementById("pieces-pool");
         const select = document.getElementById("image-select");
         const winMessage = document.getElementById("win-message");
-        const previewImage = document.getElementById("preview-image"); // Nueva referencia
+        const previewImage = document.getElementById("preview-image");
 
         let piecesPlaced = 0;
 
-        // Rellenar el selector con el repositorio de fotos
+        // Rellenar el selector
         repository.forEach(img => {
             let option = document.createElement("option");
             option.value = img.url;
@@ -230,14 +230,23 @@
 
             const currentImgUrl = select.value;
             
-            // Actualiza dinámicamente la imagen lateral derecha
-            previewImage.src = currentImgUrl; 
+            // Forzar actualización de la vista previa de forma segura
+            if(previewImage) {
+                previewImage.src = currentImgUrl;
+            }
 
             let piecesArray = [];
 
             for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; r++, c++) {
+                    // Ajuste técnico: corrección del bucle para evitar bucles infinitos
+                    if (c >= COLS) { c = 0; }
+                }
+            }
+
+            // Bucle limpio de generación de piezas
+            for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
-                    const index = r * COLS + c;
                     const posX = c * PIECE_WIDTH;
                     const posY = r * PIECE_HEIGHT;
 
@@ -253,7 +262,7 @@
                     piece.classList.add("piece", "in-pool");
                     piece.style.width = `${PIECE_WIDTH}px`;
                     piece.style.height = `${PIECE_HEIGHT}px`;
-                    piece.style.backgroundImage = `url('${currentImgUrl}')`;
+                    piece.style.backgroundImage = `url('${encodeURI(currentImgUrl)}')`; // Protege los espacios en blanco en Vercel
                     piece.style.backgroundSize = `${BOARD_WIDTH}px ${BOARD_HEIGHT}px`;
                     piece.style.backgroundPosition = `-${posX}px -${posY}px`;
                     
@@ -279,15 +288,3 @@
                 if (el.dataset.locked === "true") return;
                 isDragging = true;
                 
-                if (el.classList.contains('in-pool')) {
-                    el.classList.remove('in-pool');
-                    board.appendChild(el);
-                }
-
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-                const rect = board.getBoundingClientRect();
-                el.style.left = `${clientX - rect.left - (PIECE_WIDTH / 2)}px`;
-                el.style.top = `${clientY - rect.top - (PIECE_HEIGHT / 2)}px`;
-
